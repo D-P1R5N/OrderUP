@@ -30,7 +30,7 @@ class Keywin(Tk):
             user = entry.get()
             cur.execute('SELECT * FROM EMP WHERE Pass= ?', (entry.get(),))
             employee = cur.fetchone()
-            if employee == None:
+            if not employee:
                 print("The PIN was incorrect")
                 entry.delete('0', 'end')
                 Keywin.pin = str()

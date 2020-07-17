@@ -53,10 +53,10 @@ class Keywin(tk.Tk):
             elif value == 'Enter' :
                 pin = entry.get()
                 try:
-                    with sqlite3.connect('employee.db') as conn:
+                    with sqlite3.connect('OrderUp.db') as conn:
                     #There should only be one EMPLOYEE per PIN
                         cur = conn.cursor()
-                        cur.execute('SELECT * FROM EMP WHERE Pass= ?', (pin,))
+                        cur.execute('SELECT * FROM employee WHERE password = ?', (pin,))
                         employee = cur.fetchone()
 
                         if not employee:
@@ -66,11 +66,11 @@ class Keywin(tk.Tk):
                             entry.insert('end', self.root.pin)
 
                         else:
-                            print("Welcome", employee[0])
+                            print("Welcome", employee[1])
                             entry.delete('0', 'end')
                             self.root.pin = str()
                             entry.insert('end', self.root.pin)
-                            
+
                 except sqlite3.OperationalError as e:
                     _err = messagebox.showerror("Operational Error", e)
             else:

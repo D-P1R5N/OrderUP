@@ -19,4 +19,7 @@ Extensions in progress
    
       Data interpretation / visualization [real time graphing or general purpose graphing from data sources]
    
-   
+# Updates:
+7.17.2020
+
+    The setup.py file has been added to the file directory; this setup creates the necessary database to be used for the program. It also instantiates default values so that you have basic categories for menu items commonly found on most menus. The employee table is given a default value, but I have not programmed an interface to add employees. 

@@ -1,4 +1,5 @@
 from tkinter import *
+from tkinter import messagebox
 from tkinter import ttk
 from tkinter.font import Font
 import sqlite3
@@ -79,10 +80,10 @@ class Item(LabelFrame):
             self,root, text="Item", bg='orangered', width=100,height=100)
         self.root = root
 
-        self.item = Text(
+        self.text = Text(
             self, width='25', height='8', bg='PapayaWhip', wrap='word')
-        self.item.focus_set()
-        self.item.grid(row=0,column=0,columnspan=10,pady=3)
+        self.text.focus_set()
+        self.text.grid(row=0,column=0,columnspan=10,pady=3)
 
         self.food_opt = Frame(self)
         self.food_opt.grid(row=1,column=0,columnspan=3, sticky="E,W")
@@ -123,18 +124,18 @@ class Item(LabelFrame):
     def add_order(self, root):
         #print(self.item.get(1.0, 'end'))
         next = int(root.order.index('end-1c').split('.')[0])
-        if self.item.get(1.0, 'end') == '\n':
+        if self.text.get(1.0, 'end') == '\n':
             pass
         else:
-            text = self.item.get(1.0,'end')
+            text = self.text.get(1.0,'end')
             text = [i for i in text.split('\n') if i != '']
             print(text)
             root.order.configure(state="normal")
-            root.order.insert(next+1.0, self.item.get(1.0, 'end'))
+            root.order.insert(next+1.0, self.text.get(1.0, 'end'))
             root.order.configure(state="disabled")
 
-            self.item.delete(1.0, 'end')
-            self.item.focus_set()
+            self.text.delete(1.0, 'end')
+            self.text.focus_set()
 
     def add_alert(self):
         #Here is the alert method for allergies. Uses "!!"
@@ -142,7 +143,7 @@ class Item(LabelFrame):
         pass
 
     def clear(self):
-        self.item.delete(1.0,'end')
+        self.text.delete(1.0,'end')
 
     def modify_item(self):
         #++/--
@@ -159,7 +160,7 @@ class ServerOptions(Frame):
             self, text="Add Guest", width = 29, command=cmd,
             bg='PapayaWhip', activebackground='orangered')
         self.add_guest.pack(side="top",fill="both",expand=True)
-
+        ##EDIT STILL NEEDS WORK
         self.edit_guest = Button(
             self, text="Edit Guest", width=29, command=None,
             bg='lavender', activebackground='purple1')
@@ -215,25 +216,28 @@ class MainNote(ttk.Notebook):
     def __init__(self,root):
         ttk.Notebook.__init__(self,root)
         self.root = root
-        self.main_notes(root)
+        try:
+            self.main_notes(root)
+        except sqlite3.Error as e:
+            _err = messagebox.showerror("Menu Error", "{}\nMenu does not exist.\nFix Note: ".format(e))
 
     def main_notes(self,root):
-        conn = sqlite3.connect('main.db')
-        cur = conn.cursor()
-        cur.execute('SELECT * FROM main_cat')
-        for item in cur:
-            self.section = ttk.Notebook(root, style="lefttab.TNotebook")
-            self.section.grid(row=0,column=0)
-            self.add(self.section,text=item[1])
-            self.sub_notes(item[0])
+        with sqlite3.connect('OrderUp.db') as conn:
+            cur = conn.cursor()
+            cur.execute('SELECT * FROM main_cat')
+            for item in cur:
+                self.section = ttk.Notebook(root, style="lefttab.TNotebook")
+                self.section.grid(row=0,column=0)
+                self.add(self.section,text=item[1])
+                self.sub_notes(item[0])
 
     def sub_notes(self,index):
-        conn = sqlite3.connect('main.db')
-        cur = conn.cursor()
-        cur.execute('SELECT * FROM sub_cat WHERE main_cat_id=?', (index,))
-        for item in cur:
-            self.subsection = FoodPad(self.section,catg=item[0])
-            self.section.add(self.subsection, text='\n'.join(list(item[1])))
+        with sqlite3.connect('OrderUp.db') as conn:
+            cur = conn.cursor()
+            cur.execute('SELECT * FROM sub_cat WHERE main_cat_id=?', (index,))
+            for item in cur:
+                self.subsection = FoodPad(self.section,catg=item[0])
+                self.section.add(self.subsection, text='\n'.join(list(item[1])))
 
 class FoodPad(Frame):
     def __init__(self,root, catg=None):
@@ -252,22 +256,25 @@ class FoodPad(Frame):
         self.scroll_frame = ttk.Frame(self.canvas)
         self.scroll_frame.bind(
             "<Configure>",
-            lambda e: self.canvas.configure(
+            lambda x: self.canvas.configure(
                 scrollregion=self.canvas.bbox("all")
             )
         )
-        self.create_buttons(self.scroll_frame, self.catg)
+        try:
+            self.create_buttons(self.scroll_frame, self.catg)
+        except sqlite3.Error as e:
+            _err = messagebox.showerror("Menu Error", "{}\nMenu Error.\nFix Note:".format(e))
         self.canvas.create_window((0,0),window=self.scroll_frame,anchor="nw")
 
     def create_buttons(self, destination,index):
-        conn = sqlite3.connect('main.db')
-        cur = conn.cursor()
-        cur.execute('SELECT * FROM item WHERE sub_cat_id=?', (self.catg,))
-        r = 0
-        for item in cur:
-            self.item = ItemPane(destination, item)
-            self.item.grid(row=r,column=0,sticky="E,W")
-            r+=1
+        with sqlite3.connect('OrderUp.db') as conn:
+            cur = conn.cursor()
+            cur.execute('SELECT * FROM item WHERE sub_cat_id=?', (self.catg,))
+            r = 0
+            for item in cur:
+                self.item = ItemPane(destination, item)
+                self.item.grid(row=r,column=0,sticky="E,W")
+                r+=1
 
 class ItemPane(Frame):
 
@@ -286,7 +293,7 @@ class ItemPane(Frame):
             highlightcolor = 'DarkGreen'
         )
 
-        self.l1 = Label(self, text=data[1])
+        self.l1 = Label(self, text=data[0])
         self.l1.configure(
             font=self.font,
             bg = 'Peach Puff',
@@ -296,7 +303,7 @@ class ItemPane(Frame):
         self.l1.grid(row=0,column=0,sticky="NW,E",ipady=2)
         self.l1.bindtags("ret_info")
 
-        self.l2 = Label(self, text='${:,.2f}'.format(data[2]))
+        self.l2 = Label(self, text='${}'.format(data[1]))
         self.l2.configure(
             font=self.font,
             bg = 'light blue',
@@ -317,7 +324,7 @@ class ItemPane(Frame):
             bd = 2,
             relief = 'groove'
         )
-        self.t.insert("end", data[4])
+        self.t.insert("end", data[3])
         self.t['state']="disabled"
         self.t.bindtags("ret_info")
         #print(data)
@@ -331,7 +338,7 @@ class ItemPane(Frame):
             self.nametowidget(g).winfo_parent()
             words = self.nametowidget(parent).data #< Host frame
             #words order is (id_#,id_name,price,sub_cat,desc)
-            self._root().item.item.insert('end', (words[1] + '\n'))
+            self._root().item.text.insert('end', (words[0] + '\n'))
             print(words)
         except AttributeError as e:
             print(e)
@@ -341,6 +348,7 @@ class AddOns(Toplevel):
     def __init__ (self):
         Toplevel.__init__(self)
         self.extra = StringVar()
+        #Practice Values
         self.extra.set('Bacon Lettuce Tomato Pickle')
         self.font = Font(family="Bahnschrift SemiLight SemiConde", size=14, weight="bold")
 
@@ -368,29 +376,27 @@ class AddOns(Toplevel):
         selection = self.list.curselection()
         mods = [self.list.get(idx) for idx in selection]
         for mod in mods:
-            self.nametowidget(".").item.item.insert('end',''.join(["++", str(mod), "\n"]))
+            self._root().item.text.insert('end',''.join(["++", str(mod), "\n"]))
         self.destroy()
 
     def rem_mods(self):
         selection = self.list.curselection()
         mods = [self.list.get(idx) for idx in selection]
         for mod in mods:
-            self.nametowidget(".").item.item.insert('end',''.join(["--", str(mod), "\n"]))
+            self.nametowidget(".").item.text.insert('end',''.join(["--", str(mod), "\n"]))
         self.destroy()
 
 class Allergens(Toplevel):
     def __init__(self):
         Toplevel.__init__(self)
-        self.allergen = StringVar()
-        self.allergen.set('Soy Seeds Nuts Dairy Eggs Other')
-
-        self.other = StringVar()
-        self.other.set("Other...")
 
         self.font = Font(family="Bahnschrift SemiLight SemiConde", size=14, weight="bold")
 
         self.lf = LabelFrame(self,text="Guest is allergic to:", bg='orangered')
         self.lf.grid(row=0,column=0,sticky="N,E,S,W",ipady=10,ipadx=5)
+
+        self.allergen = StringVar()
+        self.allergen.set('Soy Seeds Nuts Dairy Eggs Other')
 
         self.a_list=Listbox(
             self.lf, listvariable=self.allergen,selectmode=MULTIPLE,
@@ -399,13 +405,24 @@ class Allergens(Toplevel):
         self.a_list.pack(side="top", expand=True,fill="both")
         self.a_list.bind('<<ListboxSelect>>', self.toggle)
 
+        self.other = StringVar()
+        self.other.set("Other...")
+
         self.specify = Entry(self.lf, textvariable=self.other)
         self.specify.pack(side="top", expand=True, fill="both", pady=5, padx=5)
         self.specify['state'] = "disabled"
 
-        self.submit = Button(self.lf, text="Submit", bg="pale green")
+        self.submit = Button(self.lf, text="Submit", bg="pale green",command=self.r_allergen)
         self.submit.pack(side="top", expand=True,fill="both",padx=4, pady=(0,5))
         self.submit.bind('<1>', self.a_list.unbind('<1>'))
+
+    def r_allergen(self):
+        sel = self.a_list.curselection()
+        alrg = [self.a_list.get(idx) if self.a_list.get(idx) != "Other" else self.other.get() for idx in sel]
+        for a in alrg:
+            self._root().item.text.insert('end',''.join(["!!", str(a),'\n']))
+        self.destroy()
+
 
     def toggle(self, root):
         bool = self.a_list.curselection()
@@ -423,6 +440,8 @@ class Special(Toplevel):
         self.t = Text(self.lf,width=51,height=5,wrap="word")
         self.t.insert('end', "This is a special request...")
         self.t.pack(side="top", expand=True,fill="both")
+
 if __name__ == "__main__":
+
     menu = OrderMenu()
     menu.mainloop()

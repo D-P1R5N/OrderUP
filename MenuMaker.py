@@ -1,4 +1,5 @@
 from tkinter import *
+from tkinter import messagebox
 from tkinter import ttk
 from tkinter.font import Font
 import sqlite3
@@ -74,7 +75,7 @@ class CreationFrame(LabelFrame):
             'price' : '{:.2f}'.format(0.00),
             'descr' : "# Enter a description"
             }
-        cmd1 = lambda x = self: x.j_create()
+        #cmd1 = lambda x = self: x.j_create()
         self.category = CatFrame(self.f)
         self.category.grid(row=2,column=0,rowspan=2,padx=5, sticky="E")
 
@@ -100,7 +101,7 @@ class CreationFrame(LabelFrame):
             row=1,column=0, columnspan=2, pady=1,padx=1, sticky = "E, W")
 
         self.submit = Button(
-            self.f, width = 25, text= 'Submit', command=cmd1,
+            self.f, width = 25, text= 'Submit', command=self.j_create,
             bg = 'pale green', activebackground='green1')
         self.submit.grid(row=2,column=1, sticky="SE", ipady=2, pady=(2,1), padx=2)
 
@@ -126,10 +127,10 @@ class CreationFrame(LabelFrame):
         price = '{:.2f}'.format(float(self.price.get()))
         desc = self.description.get('1.0','end-1c').strip()
         if id != self.defaults['id'] and desc != self.defaults['descr']:
-            with sqlite3.connect('main.db') as conn:
+            with sqlite3.connect('OrderUP.db') as conn:
                 cursor = conn.cursor()
-                cursor.execute('''INSERT INTO item (Item_Name, Item_Price, sub_cat_id, description)
-                    VALUES  (?, ?, ?, ?)''', (id,float(price),catg,desc))
+                cursor.execute('''INSERT INTO item (item_name, item_price, sub_cat_id, description)
+                    VALUES  (?, ?, ?, ?)''', (id,price,int(catg),desc))
                 conn.commit()
 
         self.item_id.delete('0','end')
@@ -150,8 +151,11 @@ class CatFrame(Frame):
         self.root = root
         self.main = IntVar()
         self.sub = StringVar()
-        self.button_mode(root)
-        self.create_radios('0')
+        try:
+            self.button_mode(root)
+            self.create_radios('0')
+        except sqlite3.Error as e:
+            _err = messagebox.showerror("Database Error", "{}\nThere is no categories in database. Fix Note: ".format(e))
 
     def _update(self):
         self.f.destroy()
@@ -160,7 +164,7 @@ class CatFrame(Frame):
 
     def button_mode(self,root):
         c = 0
-        with sqlite3.connect('main.db') as conn:
+        with sqlite3.connect('OrderUP.db') as conn:
             cursor = conn.cursor()
             cursor.execute('SELECT * FROM main_cat')
             for item in cursor:
@@ -180,7 +184,7 @@ class CatFrame(Frame):
         self.f = Frame(self)
         self.f.grid(row=1,column=0,columnspan=2,sticky="E,W")
         c1 = 0
-        with sqlite3.connect('main.db') as conn:
+        with sqlite3.connect('OrderUp.db') as conn:
             cursor = conn.cursor()
             cursor.execute('SELECT * FROM sub_cat WHERE main_cat_id=?',(index,))
             for item in cursor:
@@ -197,7 +201,7 @@ class MainNote(ttk.Notebook):
         self.main_notes(root)
 
     def main_notes(self,root):
-        conn = sqlite3.connect('main.db')
+        conn = sqlite3.connect('OrderUp.db')
         cur = conn.cursor()
         cur.execute('SELECT * FROM main_cat')
         for item in cur:
@@ -207,7 +211,7 @@ class MainNote(ttk.Notebook):
             self.sub_notes(item[0])
 
     def sub_notes(self,index):
-        conn = sqlite3.connect('main.db')
+        conn = sqlite3.connect('OrderUp.db')
         cur = conn.cursor()
         cur.execute('SELECT * FROM sub_cat WHERE main_cat_id=?', (index,))
         for item in cur:
@@ -239,7 +243,7 @@ class FoodPad(Frame):
         self.canvas.create_window((0,0),window=self.scroll_frame,anchor="nw")
 
     def create_buttons(self, destination,index):
-        conn = sqlite3.connect('main.db')
+        conn = sqlite3.connect('OrderUP.db')
         cur = conn.cursor()
         cur.execute('SELECT * FROM item WHERE sub_cat_id=?', (self.catg,))
         r = 0
@@ -266,7 +270,7 @@ class ItemPane(Frame):
             highlightcolor = 'DarkGreen'
         )
 
-        self.l1 = Label(self, text=data[1])
+        self.l1 = Label(self, text=data[0])
         self.l1.configure(
             font=self.font,
             bg = 'Peach Puff',
@@ -276,7 +280,7 @@ class ItemPane(Frame):
         self.l1.grid(row=0,column=0,sticky="NW,E",ipady=2)
         self.l1.bindtags("ret_info")
 
-        self.l2 = Label(self, text='${:,.2f}'.format(data[2]))
+        self.l2 = Label(self, text='${}'.format(data[1]))
         self.l2.configure(
             font=self.font,
             bg = 'light blue',
@@ -297,7 +301,7 @@ class ItemPane(Frame):
             bd = 2,
             relief = 'groove'
         )
-        self.t.insert("end", data[4])
+        self.t.insert("end", data[3])
         self.t['state']="disabled"
         self.t.bindtags("ret_info")
         #print(data)
@@ -317,3 +321,4 @@ if __name__ == '__main__':
 
     root = MenuMaker()
     root.mainloop()
+

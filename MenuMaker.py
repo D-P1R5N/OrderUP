@@ -2,44 +2,24 @@ from tkinter import *
 from tkinter import messagebox
 from tkinter import ttk
 from tkinter.font import Font
+import json
 import sqlite3
 
 
 class MyStyle(ttk.Style):
     def __init__(self):
         ttk.Style.__init__(self)
-        self.theme_create( "MyStyle", parent="alt", settings={
-            "TNotebook" : {"configure":{
-                "background": 'black',
-                "tabmargins": [2,5,2,0] }},
-            "TNotebook.Tab": {"configure": {
-                "background": 'light blue',
-                "padding":[50,10],
-                "font": "Bahnschrift" },
-            "map": {
-                "highlightthickness":[("selected", 3)],
-                "highlightcolor":[("selected","blue1")],
-                "background": [("selected", "blue1")],
-                "expand":[("selected", [2,2,2,0])]
-                }},
-            "lefttab.TNotebook.Tab": {"configure":{
-                "background": "lavender",
-                "padding":[10,10,0,10],
-                "width": 5,
-                "height": 5,
-                "font": "Bahnschrift"},
-            "map": {
-                "highlightthickness": [("selected", 3)],
-                "highlightcolor" :[("selected", "dark violet")],
-                "background" : [("selected", "dark violet")],
-                "expand":[("selected", [2,0,2,0])]}
-            }})
+        style_configure = None
+        with open('OrderUPstyle.txt', 'r') as j_load:
+            style_configure = json.load(j_load)
+        self.theme_create( "MyStyle", parent="alt", settings=style_configure)
+
 class MenuMaker(Tk):
     def __init__(self):
         Tk.__init__(self)
         self.title("Menu Creation")
         self.resizable(False,False)
-        self.display = self.geometry("+100+100")
+        self.geometry("+100+100")
         self.style = MyStyle()
         self.style.theme_use("MyStyle")
         self.style.configure('lefttab.TNotebook', tabposition='wn')
@@ -51,7 +31,7 @@ class MenuMaker(Tk):
         self.f2.pack(expand=True,fill="both",side="left")
 
         self.c = Canvas(self.f2)
-        self.c.configure(width=540, height=755)
+        self.c.configure(width=540, height=750)
         self.c.pack(expand=True,fill="both",side="left")
         self._frame(self.c)
 
@@ -59,7 +39,7 @@ class MenuMaker(Tk):
     def _frame(self, destination):
         self.sf = ttk.Frame(self.c)
         self.n1 = MainNote(self.c)
-        self.c.create_window((0,0),window=self.n1,anchor="nw")
+        self.c.create_window((0,0),window=self.n1,anchor="nw", height=755)
 
 
 class CreationFrame(LabelFrame):
@@ -75,7 +55,7 @@ class CreationFrame(LabelFrame):
             'price' : '{:.2f}'.format(0.00),
             'descr' : "# Enter a description"
             }
-        #cmd1 = lambda x = self: x.j_create()
+
         self.category = CatFrame(self.f)
         self.category.grid(row=2,column=0,rowspan=2,padx=5, sticky="E")
 
@@ -259,7 +239,7 @@ class ItemPane(Frame):
         Frame.__init__(self,root)
         self.font = Font(family='Georgia', size=12)
         self.data = data
-        cmd = lambda x = root : self.hello(x)
+        cmd = lambda x = root : self.printItemData(x)
         self.bind_class("ret_info", "<Double-1>", cmd)
 
         self.grid(sticky="E,W")
@@ -307,18 +287,18 @@ class ItemPane(Frame):
         #print(data)
         #self.bind_all("<Double-1>", cmd)
 
-    def hello(self, root):
-
+    def printItemData(self, root):
+        '''This finds which item called the event, then gets the data
+        associated with it'''
         try:
             parent = root.widget.winfo_parent()
-            g = (self.nametowidget(parent).winfo_parent())
-            self.nametowidget(g).winfo_parent()
-            words = self.nametowidget(parent).data #< Host frame
-            print(words)
+            item_info = self.nametowidget(parent).data #< Host frame
+            display = messagebox.showinfo(item_info[0], item_info[:2])
         except AttributeError as e:
             print(e)
 if __name__ == '__main__':
 
     root = MenuMaker()
     root.mainloop()
+
 

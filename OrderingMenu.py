@@ -2,48 +2,28 @@ from tkinter import *
 from tkinter import messagebox
 from tkinter import ttk
 from tkinter.font import Font
+from copy import deepcopy
+from datetime import datetime
 import sqlite3
+import json
+
 
 class MyStyle(ttk.Style):
     def __init__(self):
         ttk.Style.__init__(self)
-        self.theme_create( "MyStyle", parent="alt", settings={
-            "TNotebook" : {"configure":{
-                "background": 'black',
-                "tabmargins": [2,5,2,0] }},
-            "TNotebook.Tab": {"configure": {
-                "background": 'light blue',
-                "padding":[50,10],
-                "font": "Bahnschrift" },
-            "map": {
-                "highlightthickness":[("selected", 3)],
-                "highlightcolor":[("selected","blue1")],
-                "background": [("selected", "blue1")],
-                "expand":[("selected", [2,2,2,0])]
-                }},
-            "lefttab.TNotebook": {"configure":{
-                "tabposition":"wn"}},
-            "lefttab.TNotebook.Tab": {"configure":{
-                "background": "lavender",
-                "padding":[10,10,0,10],
-                "width": 5,
-                "height": 5,
-                "font": "Bahnschrift"},
-            "map": {
-                "highlightthickness": [("selected", 3)],
-                "highlightcolor" :[("selected", "dark violet")],
-                "background" : [("selected", "dark violet")],
-                "expand":[("selected", [2,0,2,0])]}
-            }})
+        style_configure = None
+        with open('OrderUPstyle.txt', 'r') as j_load:
+            style_configure = json.load(j_load)
+        self.theme_create( "MyStyle", parent="alt", settings=style_configure)
 
 class OrderMenu(Tk):
     def __init__(self):
         Tk.__init__(self)
         self.title("Order UP!")
         self.resizable(False,False)
-        self.display = self.geometry("+500+300")
+        self.geometry("+500+300")
         self['bg'] = 'black'
-        self.person = 1
+        self.person = 0
         self.ticket = dict()
 
         self.style = MyStyle()
@@ -63,6 +43,7 @@ class OrderMenu(Tk):
 
     def _update(self, words):
         self.item.item.insert('end',(words['name'],"\t\t",words['price'],"\n"))
+
 class ActiveOrder(Text):
     def __init__(self,root):
         Text.__init__(self,root)
@@ -79,6 +60,7 @@ class Item(LabelFrame):
         LabelFrame.__init__(
             self,root, text="Item", bg='orangered', width=100,height=100)
         self.root = root
+        self.seat_item = dict()
 
         self.text = Text(
             self, width='25', height='8', bg='PapayaWhip', wrap='word')
@@ -117,30 +99,41 @@ class Item(LabelFrame):
             bg='pink1', activebackground='red')
         self.cancel.grid(row=2,column=1,ipady=3)
     def add_request(self):
-        #Here is the request method. Uses "__"
+        #Here is the request method. Uses ".."
         self._request = Special()
         pass
 
     def add_order(self, root):
-        #print(self.item.get(1.0, 'end'))
         next = int(root.order.index('end-1c').split('.')[0])
-        if self.text.get(1.0, 'end') == '\n':
-            pass
-        else:
-            text = self.text.get(1.0,'end')
-            text = [i for i in text.split('\n') if i != '']
-            print(text)
+
+        if self.text.get(1.0, 'end') != '\n':
+            _data = deepcopy(self.seat_item)
+            text = json.dumps(_data, indent=4)
+            delimits = ['[',']','{','}',',']
+            for _ in delimits:
+                text = text.replace(_, '')
+
             root.order.configure(state="normal")
-            root.order.insert(next+1.0, self.text.get(1.0, 'end'))
+            root.order.insert(next+1.0, text)
             root.order.configure(state="disabled")
 
+            try:
+                root.order.table[root.person].append(_data)
+            except:
+                root.order.table[root.person] = [_data]
+
+            self.seat_item.clear()
             self.text.delete(1.0, 'end')
             self.text.focus_set()
+
+        else: pass
+
 
     def add_alert(self):
         #Here is the alert method for allergies. Uses "!!"
         self.allergies = Allergens()
-        pass
+
+
 
     def clear(self):
         self.text.delete(1.0,'end')
@@ -148,16 +141,15 @@ class Item(LabelFrame):
     def modify_item(self):
         #++/--
         self.mods = AddOns()
-        pass
+
 
 class ServerOptions(Frame):
     def __init__(self,root):
         Frame.__init__(self,root)
-        #self.grid()
         self.root = root
-        cmd = lambda x = self.root : self.add_client(x)
+
         self.add_guest = Button(
-            self, text="Add Guest", width = 29, command=cmd,
+            self, text="Add Guest", width = 29, command=self.add_client,
             bg='PapayaWhip', activebackground='orangered')
         self.add_guest.pack(side="top",fill="both",expand=True)
         ##EDIT STILL NEEDS WORK
@@ -166,9 +158,9 @@ class ServerOptions(Frame):
             bg='lavender', activebackground='purple1')
         self.edit_guest.pack(side="top",fill="both",expand=True)
 
-        cmd2 = lambda x = self.root: self.remove_client(x)
+
         self.remove_guest = Button(
-            self, text="Remove Guest", width=29, command=cmd2,
+            self, text="Remove Guest", width=29, command=self.remove_client,
             bg='pink1', activebackground='red')
         self.remove_guest.pack(side="top", fill="both", expand=True)
 
@@ -178,9 +170,26 @@ class ServerOptions(Frame):
         self.confirm.pack(side="top",fill="both",expand=True)
 
     def send_ticket(self):
-        print(self.nametowidget(".").order.table)
+        j_data = json.dumps(self._root().order.table)
+        chron_time = datetime.now()
+        _date = str(chron_time.date())
+        _time = str(chron_time.time()).split('.')
 
-    def add_client(self, root):
+        sql_statement = """INSERT INTO active_orders ( ticket_info, time, date)
+            VALUES (?,?,?)"""
+        with sqlite3.connect('OrderUP.db') as conn:
+            cursor = conn.cursor()
+            cursor.execute(sql_statement, (j_data,_time[0],_date))
+        print(self._root().order.table)
+
+        root = self._root()
+        root.order.configure(state='normal')
+        root.order.delete(1.0, 'end')
+        root.order.configure(state = 'disabled')
+
+    def add_client(self):
+        root = self.root
+        root.person += 1
         #This method adds a seat to the displayed ticket
         next = int(root.order.index('end-1c').split('.')[0])
         next_line=["\n","-"*20, "Seat #", str(root.person), "-"*20, "\n"]
@@ -189,8 +198,7 @@ class ServerOptions(Frame):
         root.order.insert(next+1.0, ''.join(next_line), 'tag-center')
         root.order.configure(state="disabled")
 
-        root.item.item.focus_set()
-        root.person +=1
+        root.item.text.focus_set()
 
         self.add_guest['text']=''.join(["Seat #", str(root.person)])
         #print(''.join(next_line))
@@ -200,11 +208,11 @@ class ServerOptions(Frame):
         pass
 
 
-    def remove_client(self, root):
+    def remove_client(self):
+        root = self.root
         text = root.order.get(1.0,'end')
         text = [i for i in text.split("\n") if i != '']
-        #minus_guest = list(filter(lambda x: x))
-        print(text)
+
         root.order.configure(state="normal")
         root.order.delete('end-1l','end')
         root.order.configure(state="disabled")
@@ -263,7 +271,9 @@ class FoodPad(Frame):
         try:
             self.create_buttons(self.scroll_frame, self.catg)
         except sqlite3.Error as e:
-            _err = messagebox.showerror("Menu Error", "{}\nMenu Error.\nFix Note:".format(e))
+            _err = messagebox.showerror(
+            "Menu Error",
+            "{}\nMenu Error.\nFix Note:Run setup.py Database rebuild.".format(e))
         self.canvas.create_window((0,0),window=self.scroll_frame,anchor="nw")
 
     def create_buttons(self, destination,index):
@@ -272,11 +282,11 @@ class FoodPad(Frame):
             cur.execute('SELECT * FROM item WHERE sub_cat_id=?', (self.catg,))
             r = 0
             for item in cur:
-                self.item = ItemPane(destination, item)
+                self.item = OrderItemPane(destination, item)
                 self.item.grid(row=r,column=0,sticky="E,W")
                 r+=1
 
-class ItemPane(Frame):
+class OrderItemPane(Frame):
 
     def __init__(self,root,data):
         Frame.__init__(self,root)
@@ -313,7 +323,7 @@ class ItemPane(Frame):
         self.l2.grid(row=0,column=1,sticky="NE,W",ipady=2)
         self.l2.bindtags("ret_info")
 
-    #This is the ['desc'] section
+        #This is the ['desc'] section
         self.t = Text(self,width=45,height=3)
         self.t.font = Font(family='Georgia', size=8)
         self.t.grid(row=1,column=0,columnspan=2,sticky="N,E,W,S")
@@ -327,28 +337,27 @@ class ItemPane(Frame):
         self.t.insert("end", data[3])
         self.t['state']="disabled"
         self.t.bindtags("ret_info")
-        #print(data)
-        #self.bind_all("<Double-1>", cmd)
 
     def add_item(self, root):
-
+        _r = self._root()
         try:
             parent = root.widget.winfo_parent()
-            g = (self.nametowidget(parent).winfo_parent())
-            self.nametowidget(g).winfo_parent()
-            words = self.nametowidget(parent).data #< Host frame
-            #words order is (id_#,id_name,price,sub_cat,desc)
-            self._root().item.text.insert('end', (words[0] + '\n'))
-            print(words)
+            item_info = self.nametowidget(parent).data #< Host fram
+            #item_info order is (item_name,price,sub_cat,desc)
+            _r.item.text.insert('end', (item_info[0] + '\n'))
+            _r.item.seat_item['ID'] = item_info[0]
+            _r.item.seat_item['$$'] = item_info[1]
+
+
         except AttributeError as e:
-            print(e)
+            messagebox.showerror('Item Data Error', '/n'.join([e, "Delete item from database and recreate."]))
+            #print(e)
 
 
 class AddOns(Toplevel):
     def __init__ (self):
         Toplevel.__init__(self)
         self.extra = StringVar()
-        #Practice Values
         self.extra.set('Bacon Lettuce Tomato Pickle')
         self.font = Font(family="Bahnschrift SemiLight SemiConde", size=14, weight="bold")
 
@@ -373,17 +382,22 @@ class AddOns(Toplevel):
         self.remove.pack(expand=True, fill="both",ipady=5)
 
     def add_mods(self):
+        _r = self._root()
         selection = self.list.curselection()
-        mods = [self.list.get(idx) for idx in selection]
+        mods = [str(self.list.get(idx)) for idx in selection]
+
+        _r.item.seat_item['++'] = mods
         for mod in mods:
-            self._root().item.text.insert('end',''.join(["++", str(mod), "\n"]))
+            _r.item.text.insert('end',''.join(["++", mod, "\n"]))
         self.destroy()
 
     def rem_mods(self):
         selection = self.list.curselection()
-        mods = [self.list.get(idx) for idx in selection]
+        mods = [str(self.list.get(idx)) for idx in selection]
+
+        self._root().item.seat_item['--'] = mods
         for mod in mods:
-            self.nametowidget(".").item.text.insert('end',''.join(["--", str(mod), "\n"]))
+            self.nametowidget(".").item.text.insert('end',''.join(["--", mod, "\n"]))
         self.destroy()
 
 class Allergens(Toplevel):
@@ -417,14 +431,21 @@ class Allergens(Toplevel):
         self.submit.bind('<1>', self.a_list.unbind('<1>'))
 
     def r_allergen(self):
+        root = self._root()
+        #gather and sterilize selection
         sel = self.a_list.curselection()
-        alrg = [self.a_list.get(idx) if self.a_list.get(idx) != "Other" else self.other.get() for idx in sel]
+        alrg = [str(self.a_list.get(idx)) if self.a_list.get(idx) != "Other" else self.other.get() for idx in sel]
+
+        root.item.seat_item['!!'] = alrg
+
         for a in alrg:
-            self._root().item.text.insert('end',''.join(["!!", str(a),'\n']))
+            self._root().item.text.insert('end', ('!!' + a +'\n'))
+
         self.destroy()
 
 
     def toggle(self, root):
+    #this toggles the "Other..." Entry field
         bool = self.a_list.curselection()
         if 5 in bool:
             self.specify['state'] = "normal"
@@ -440,6 +461,27 @@ class Special(Toplevel):
         self.t = Text(self.lf,width=51,height=5,wrap="word")
         self.t.insert('end', "This is a special request...")
         self.t.pack(side="top", expand=True,fill="both")
+
+        self._frame = Frame(self, bg="orangered")
+        self._frame.grid(row=1,column=0, sticky="N,E,S,W", ipadx=5)
+
+        self._submit = Button(
+            self._frame, width=25, text = "Submit", command=self.submit_text,
+            bg = 'pale green', activebackground='green1')
+        self._submit.grid(row=0,column=0, sticky="N,S,W", ipady=2, padx=2)
+
+        self._cancel = Button(
+            self._frame, width=15, text = 'X', command=self.destroy,
+            bg = 'pink1', activebackground = 'red')
+        self._cancel.grid(row=0,column=1, sticky="N,E,S", ipady=2, padx=2)
+
+    def submit_text(self):
+        text = self.t.get(1.0, 'end')
+        self._root().item.seat_item['..'] = text
+        self._root().item.text.insert('end', text)
+
+        self.destroy()
+
 
 if __name__ == "__main__":
 

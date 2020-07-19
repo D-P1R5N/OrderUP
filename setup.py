@@ -57,7 +57,32 @@ class Main(tk.Tk):
         main_cat_id integer NOT NULL,
         FOREIGN KEY (main_cat_id) REFERENCES main_cat (id)
         );"""
-        statements = [sql_table_employee, sql_table_items, sql_main_cat, sql_sub_cat]
+
+        sql_kitchen_active_orders = """CREATE TABLE IF NOT EXISTS active_orders (
+        table_num integer PRIMARY KEY,
+        ticket_info blob NOT NULL,
+        time integer NOT NULL,
+        date text NOT NULL
+        );"""
+
+        sql_customer_sales = """CREATE TABLE IF NOT EXISTS customer_sales (
+        id integer PRIMARY KEY,
+        date text NOT NULL,
+        time integer NOT NULL,
+        payment_total real NOT NULL,
+        payment_type text NOT NULL
+        );"""
+
+
+
+        statements = [
+            sql_table_employee,
+            sql_table_items,
+            sql_main_cat,
+            sql_sub_cat,
+            sql_kitchen_active_orders,
+            sql_customer_sales]
+
         cur = conn.cursor()
         for state in statements:
 

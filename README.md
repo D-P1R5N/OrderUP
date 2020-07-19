@@ -23,3 +23,11 @@ Extensions in progress
 7.17.2020
 
     The setup.py file has been added to the file directory; this setup creates the necessary database to be used for the program. It also instantiates default values so that you have basic categories for menu items commonly found on most menus. The employee table is given a default value, but I have not programmed an interface to add employees. 
+
+7.18.2020
+
+    The setup.py has been updated to expand the database.
+    The style option has been moved to an external text file and parsed with JSON
+    An employee window has been created to add Employees to the database
+    The OrderMenu now passes the data from ordering around as a data structure instead of seperate pieces of info. 
+    

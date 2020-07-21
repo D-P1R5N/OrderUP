@@ -91,7 +91,7 @@ class EmployeeMainTk(Tk):
         l_name = self.last_entry.get()
         if f_name and l_name:
 
-            name_val = ','.join([l_name,f_name])
+            name_val = ' ,'.join([l_name,f_name])
             last_check = messagebox.askyesno(
                 "Confirm Employee Entry",
                 '\n'.join([name_val, _pin, "Confirm the following employee info?"]))
@@ -106,6 +106,8 @@ class EmployeeMainTk(Tk):
                 self.first_entry.delete('0', 'end')
                 self.last_entry.delete('0', 'end')
                 self.pin_entry.delete('0', 'end')
+                self.pin_entry['bg'] = 'white'
+                self.pin_avail = False
             else:
                 return
         else:

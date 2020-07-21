@@ -1,22 +1,23 @@
 import tkinter as tk
+from tkinter import Toplevel
 from tkinter import messagebox
 from tkinter.font import Font
 from tkinter import ttk
 import sqlite3
 
-class Keywin(tk.Tk):
+class Keywin(Toplevel):
     def __init__(self):
-        tk.Tk.__init__(self)
+        Toplevel.__init__(self)
         self.title("Login")
         self.resizable(False,False)
         self.overrideredirect(True)
         self.geometry("+300+300")
-        self.pin = str()
+        self.pin = tk.StringVar()
 
         self.entry = ttk.Entry(width=15)
         self.entry.grid(column=0,row=0, pady=2)
 
-        self.numpad = self.Numpad()
+        self.numpad = self.Numpad(self)
         self.numpad.grid(column=0,row=1,padx=5,pady=2)
 
         self.destruct = ttk.Button(command=self.close,text="Close",width=15)
@@ -26,9 +27,9 @@ class Keywin(tk.Tk):
         self._root().destroy()
 
     class Numpad(ttk.Frame):
-        def __init__(self):
+        def __init__(self,root):
             ttk.Frame.__init__(self)
-            self.root = self._root()
+            self.root = root
             self.numpad_create([*range(1,10), *['Del','0','Enter']])
 
         def numpad_create(self,nums):
@@ -46,9 +47,9 @@ class Keywin(tk.Tk):
         def code(self, value):
             entry = self.root.entry
             if value == 'Del':
-                self.root.pin = self.root.pin[:-1]
-                entry.delete('0', 'end')
-                entry.insert('end', self.root.pin)
+
+                entry.delete(len(entry.get())-1)
+                #entry.insert('end', self.root.pin)
 
             elif value == 'Enter' :
                 pin = entry.get()
@@ -68,14 +69,14 @@ class Keywin(tk.Tk):
                         else:
                             print("Welcome", employee[1])
                             entry.delete('0', 'end')
-                            self.root.pin = str()
-                            entry.insert('end', self.root.pin)
+
+                            #entry.insert('end', self.root.pin)
 
                 except sqlite3.OperationalError as e:
                     _err = messagebox.showerror("Operational Error", e)
             else:
-                if len(self.root.pin) < 4:
-                    self.root.pin += str(value)
+                if len(entry.get()) < 4:
+
                     entry.insert('end', value)
                 else: pass
 
@@ -83,3 +84,4 @@ if __name__ == "__main__":
 
     keypad = Keywin()
     keypad.mainloop()
+

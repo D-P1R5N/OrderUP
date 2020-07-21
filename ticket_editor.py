@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import font
 from tkinter import colorchooser
+import json
 from copy import deepcopy
 
 
@@ -11,24 +12,25 @@ class TicketEditor(tk.Tk):
         self.title('Receipt Editor')
         self.resizable(False,False)
         self.fields = dict()
-        self.line = 0
+        self.line = None
 
         self.text_frame = ttk.LabelFrame(self,text="Layout Preview:")
         self.text_frame.grid(row=0,column=0,ipadx=2,ipady=2,padx=2,pady=2,sticky='N,S')
 
         self.text = tk.Text(self.text_frame, width=50)
         self.text.grid(row=0,column=0,ipadx=2,ipady=2,padx=2,pady=2,sticky='N,E,S,W')
+        self.text.bind('<1>', self.setIndex)
 
         self.options_frame = ttk.LabelFrame(self, text="Layout Options:")
         self.options_frame.grid(row=0,column=1,ipadx=2,ipady=2,padx=2,pady=2,sticky='N,E,S,W')
-
+        #Tag Name Entry
         self.field_name = tk.StringVar()
         self.f_entry_label = ttk.LabelFrame(self.options_frame, text="Tag Key:")
         self.f_entry_label.grid(row=0,column=0,sticky="E,W")
 
         self.option_f_entry = ttk.Entry(self.f_entry_label, textvar= self.field_name)
         self.option_f_entry.grid(row=0,column=0, pady=2, sticky='N,S,E,W')
-
+        #Font Listbox
         self.fonts = tk.StringVar()
         self.font_label = ttk.LabelFrame(self.options_frame, text="Available Fonts:")
         self.font_label.grid(row=2,column=0,columnspan=2, sticky = "E,W")
@@ -38,7 +40,7 @@ class TicketEditor(tk.Tk):
         self.font_list.grid(row=2,column=0,columnspan=2, sticky="E,W")
         self.font_list.bind('<ButtonRelease-1>', self.setText)
         self._fonts_add()
-
+        ##Color Foreground##
         self.color_label = ttk.LabelFrame(self.options_frame, text='Color Chooser:')
         self.color_label.grid(row=3,column=0,sticky="E,W")
 
@@ -48,10 +50,10 @@ class TicketEditor(tk.Tk):
 
         self.color_preview = tk.Canvas(self.color_label,height=10,width=20, bg=self.color_value[1])
         self.color_preview.grid(row=0,column=1,sticky="N,E,S,W")
-
+        ##font dressings##
         self.font_options = ttk.LabelFrame(self.options_frame, text='Font Options')
         self.font_options.grid(row=4,column=0,sticky="N,S,E,W")
-        ##font dressings##
+
         self.bold_val = tk.IntVar()
         self.f_bold = tk.Checkbutton(self.font_options, text='Bold', variable=self.bold_val)
         self.f_bold.grid(row=0,column=0,sticky="W")
@@ -92,9 +94,63 @@ class TicketEditor(tk.Tk):
 
         self.just_right = tk.Checkbutton(self.just_options, text='R', variable=self.just_setting, onvalue=2)
         self.just_right.grid(row=0,column=2, sticky="E")
-
+        ##end justifications##
         self.option_f_confirm = ttk.Button(self.options_frame,  text="Add Text Tag", command=self.tagAttrSet)
         self.option_f_confirm.grid(row=6,column=0, sticky= "S,W,E")
+
+        self.tag_remove = ttk.Button(self.options_frame, text="Remove Tag", command=self.tagRemove)
+        self.tag_remove.grid(row=7,column=0, sticky="E,W,S")
+        #Settings List#
+        self.tag_frame = ttk.LabelFrame(self, text="Tag List:")
+        self.tag_frame.grid(row=0,column=2,sticky="N,S,E,W")
+
+        self.tag_keys = tk.StringVar()
+        self.tag_list = tk.Listbox(self.tag_frame, listvariable=self.tag_keys)
+        self.tag_list.grid(row=0,column=0,sticky="N,S,E,W")
+
+        self.tag_update = ttk.Button(self.tag_frame, text="Update", command=self.tagUpdate)
+        self.tag_update.grid(row=1,column=0, sticky="E,W")
+
+        self.options_f_save = ttk.Button(self.tag_frame,text="Save Settings", command=self.tagSave)
+        self.options_f_save.grid(row=2,column=0,sticky="S,W,E")
+        self.tagImport()
+
+
+    def tagRemove(self):
+        try:
+            _f_select = self.tag_list.curselection()
+            _f = self.tag_list.get(_f_select)
+        except:
+            return
+
+        finally:
+            self.text.tag_delete(_f)
+            self.tag_list.delete(_f_select)
+            del self.fields[_f]
+
+    def tagImport(self):
+        with open('ticket_style.json', 'r') as j_read:
+            j_data = json.load(j_read)
+            for item in j_data:
+                self.fields[item] = deepcopy(j_data[item])
+                _text = j_data[item]['font']
+                _just = j_data[item]['justify']
+                _color = j_data[item]['color']
+
+                _font = font.Font(**_text)
+
+                try:
+                    self.text.tag_configure(item ,font=_font,justify=_just,foreground=_color)
+                except: pass
+
+        j_key = j_data.keys()
+        for _key in j_key:
+            self.tag_list.insert(0,_key)
+
+
+    def tagSave(self):
+        with open('ticket_style.json', 'w') as j_write:
+            json.dump(self.fields, j_write)
 
     def size_val_up(self):
         val = self.size_val.get()
@@ -122,6 +178,8 @@ class TicketEditor(tk.Tk):
         text_dict = dict()
         text_key = self.option_f_entry.get()
         text_key = text_key.replace(' ','')
+        if not text_key:
+            return
 
         text = self.font_default
         weight = self.bold_val.get()
@@ -159,12 +217,13 @@ class TicketEditor(tk.Tk):
 
         self.fields[text_key] = deepcopy(text_dict)
         _fontExample = font.Font(**fontEx)
-        self.text.tag_configure(text_key, font=_fontExample, justify=_fj)
-        self.text.insert('end',text_key + '\n', (text_key) )
+        self.text.tag_configure(text_key, font=_fontExample, justify=_fj, foreground=self.color_value[1])
+        self.text.insert('end',text_key + '\n', (text_key))
 
         self.option_f_entry.delete('0','end')
+        self.tag_list.insert('end', text_key)
 
-        print(self.fields)
+
     def setText(self,event):
         font_indx = self.font_list.curselection()
         text_sel = self.font_list.get(font_indx)
@@ -175,7 +234,35 @@ class TicketEditor(tk.Tk):
         avail = ' '.join(_)
         self.fonts.set(_)
 
+    def tagUpdate(self):
+        if not self.line:
+            indx = '1.0'
+        else:
+            indx = str(self.line)
+        #check if there's a selected tag
+        try:
+            _f_select = self.tag_list.curselection()
+            _f = self.tag_list.get(_f_select)
+        except:
+            _f = self.tag_list.get(0)
+
+        try:
+            _fontExample = font.Font(**self.fields[_f]['font'])
+            _fontJustify = self.fields[_f]['justify']
+            _fontColor = self.fields[_f]['color']
+        except: print("Error at FONT")
+        try:
+            for tag in self.text.tag_names():
+                self.text.tag_remove(tag, indx, indx.split('.')[0] + '.end')
+        except:pass
+        finally:
+            self.text.tag_add(_f, indx, indx.split('.')[0] +'.end')
+            #self.text.tag_raise(_f)
+
+    def setIndex(self, event):
+        self.line = self.text.index('current linestart')
+        print(self.line)
+
 if __name__ == '__main__':
     main = TicketEditor()
-
     main.mainloop()

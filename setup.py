@@ -1,6 +1,7 @@
 import sqlite3
 from sqlite3 import Error
 import tkinter as tk
+from tkinter import messagebox
 from tkinter import ttk
 
 class Main(tk.Tk):
@@ -8,21 +9,44 @@ class Main(tk.Tk):
         tk.Tk.__init__(self)
         self.title("OrderUP Setup Window")
         self.resizable(False,False)
-        self.geometry("750x750+800+0")
+        self.geometry("+800+0")
 
         self.db_iFrame = ttk.LabelFrame(self, text="Input DB Info Here")
-        self.db_iFrame.pack(side="top", expand=True, fill= "both")
+        self.db_iFrame.grid(row=0,column=0,ipadx=2,ipady=2,padx=2,pady=2,sticky='N,E,S,W')
+
+        self.text_frame = ttk.LabelFrame(self.db_iFrame, text="Read Me")
+        self.text_frame.grid(row=0,column=0,ipadx=2,ipady=2,padx=2,pady=2,sticky='N,E,S,W',columnspan=2)
+
+        self.readme_text = tk.Text(self.text_frame)
+        self.readme_text.grid(row=0,column=0,ipadx=2,ipady=2,padx=2,pady=2,sticky='N,E,S,W')
+        self.readmeAppend()
 
 
-        self.setup_db()
+        self.build_button = ttk.Button(self.db_iFrame, text = 'Run', command = self.setup_db)
+        self.build_button.grid(row=1,column=0,ipadx=2,ipady=2,padx=2,pady=2,sticky="W")
+
+        self.close_button = ttk.Button(self.db_iFrame, text='Close', command = self.destroy)
+        self.close_button.grid(row=1,column=1,ipadx=2,ipady=2,padx=2,pady=2, sticky="E")
+
+
+    def readmeAppend(self):
+        with open('readme.txt', 'r', 8192) as reader:
+            _r = reader.read(4096)
+            self.readme_text.insert('end', _r)
+        self.readme_text['state'] = 'disabled'
+
+
 
     def setup_db(self):
         conn = None;
         try:
             with sqlite3.connect('OrderUP.db') as conn:
-                print(sqlite3.version)
+                #print(sqlite3.version)
                 self.create_table_statements(conn)
                 self.create_table_defaults(conn)
+                messagebox.showinfo("Database Created",
+                'The OrderUP database has been created.')
+                self.build_button['state'] = 'disabled'
 
         except Error as e:
             print(e)

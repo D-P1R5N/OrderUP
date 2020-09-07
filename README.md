@@ -31,3 +31,9 @@ Extensions in progress
     An employee window has been created to add Employees to the database
     The OrderMenu now passes the data from ordering around as a data structure instead of seperate pieces of info. 
     
+9.7.2020
+    
+    The OrderMenu has been rewritten to be more asthetically pleasing and the style code has been temporarily added to the top of the file.
+    A KitchenView window has been added to the file list, which checks the database for active tickets and creates the necessary widgets to process from an expediter position.
+    There is a small bug currently with the individual Main.Ticket.ticket_timer() function where all the tickets will reference the last Ticket's thread. 
+    

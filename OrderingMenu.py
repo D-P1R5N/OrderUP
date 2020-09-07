@@ -1,7 +1,7 @@
-from tkinter import *
+import tkinter as tk
 from tkinter import messagebox
 from tkinter import ttk
-from tkinter.font import Font
+from tkinter import font
 from copy import deepcopy
 from datetime import datetime
 import sqlite3
@@ -15,10 +15,13 @@ class MyStyle(ttk.Style):
         with open('OrderUPstyle.txt', 'r') as j_load:
             style_configure = json.load(j_load)
         self.theme_create( "MyStyle", parent="alt", settings=style_configure)
+        self.configure("mystyle.Treeview", highlightthickness=0, bd=0, font=('Calibri', 11))
+        self.configure("mystyle.Treeview.Heading", font=('Calibri', 13, 'bold'))
+        self.layout("mystyle.Treeview", [('mystyle.Treeview.treearea', {'sticky': 'nswe'})])
 
-class OrderMenu(Tk):
+class OrderMenu(tk.Tk):
     def __init__(self):
-        Tk.__init__(self)
+        tk.Tk.__init__(self)
         self.title("Order UP!")
         self.resizable(False,False)
         self.geometry("+500+300")
@@ -32,9 +35,6 @@ class OrderMenu(Tk):
         self.order = ActiveOrder(self)
         self.order.grid(row=0,column=2,rowspan=10, sticky="N,S")
 
-        self.item = Item(self)
-        self.item.grid(row=0, column=1, sticky="N,S")
-
         self.serv_opt = ServerOptions(self)
         self.serv_opt.grid(row=1,column=1, sticky="N,E,W,S")
 
@@ -44,130 +44,43 @@ class OrderMenu(Tk):
     def _update(self, words):
         self.item.item.insert('end',(words['name'],"\t\t",words['price'],"\n"))
 
-class ActiveOrder(Text):
+class ActiveOrder(tk.Canvas):
     def __init__(self,root):
-        Text.__init__(self,root)
+        tk.Canvas.__init__(self,root)
         self.root = root
         self.configure(
-            width= 50, height= 35, wrap="word", state='disabled',
+            width= 500, height= 35, state='disabled',
             bg='honeydew', highlightthickness=3, highlightbackground= "DarkGreen",
             relief= 'sunken'
         )
         self.table = dict()
 
-class Item(LabelFrame):
+class ServerOptions(tk.Frame):
     def __init__(self,root):
-        LabelFrame.__init__(
-            self,root, text="Item", bg='orangered', width=100,height=100)
-        self.root = root
-        self.seat_item = dict()
-
-        self.text = Text(
-            self, width='25', height='8', bg='PapayaWhip', wrap='word')
-        self.text.focus_set()
-        self.text.grid(row=0,column=0,columnspan=10,pady=3)
-
-        self.food_opt = Frame(self)
-        self.food_opt.grid(row=1,column=0,columnspan=3, sticky="E,W")
-
-        self.mod = Button(
-            self.food_opt,text="++/--", command=self.modify_item,
-            bg='coral', activebackground='coral2')
-        self.mod.pack(side="left",expand=True,fill="both")
-
-        self.request = Button(
-            self.food_opt,text="Request",command = self.add_request,
-            bg = 'light blue', activebackground = 'blue1')
-        self.request.pack(side="left",expand=True,fill="both")
-
-        self.alert = Button(
-            self.food_opt,text="!!",command= self.add_alert,
-            bg = 'red', activebackground = 'DarkRed')
-        self.alert.pack(side="left",expand=True,fill="both")
-
-        self.finish = Frame(self)
-        self.finish.grid(row=2,column=0,columnspan=3)
-
-        cmd1 = lambda root=self.root:  self.add_order(root)
-        self.confirm = Button(
-            self.finish,text="Confirm", width='20',command=cmd1,
-            bg='honeydew', activebackground='DarkGreen')
-        self.confirm.grid(row=2,column=0,ipady=3)
-
-        self.cancel = Button(
-            self.finish, text="X", width='10', command=self.clear,
-            bg='pink1', activebackground='red')
-        self.cancel.grid(row=2,column=1,ipady=3)
-    def add_request(self):
-        #Here is the request method. Uses ".."
-        self._request = Special()
-        pass
-
-    def add_order(self, root):
-        next = int(root.order.index('end-1c').split('.')[0])
-
-        if self.text.get(1.0, 'end') != '\n':
-            _data = deepcopy(self.seat_item)
-            text = json.dumps(_data, indent=4)
-            delimits = ['[',']','{','}',',']
-            for _ in delimits:
-                text = text.replace(_, '')
-
-            root.order.configure(state="normal")
-            root.order.insert(next+1.0, text)
-            root.order.configure(state="disabled")
-
-            try:
-                root.order.table[root.person].append(_data)
-            except:
-                root.order.table[root.person] = [_data]
-
-            self.seat_item.clear()
-            self.text.delete(1.0, 'end')
-            self.text.focus_set()
-
-        else: pass
-
-
-    def add_alert(self):
-        #Here is the alert method for allergies. Uses "!!"
-        self.allergies = Allergens()
-
-
-
-    def clear(self):
-        self.text.delete(1.0,'end')
-
-    def modify_item(self):
-        #++/--
-        self.mods = AddOns()
-
-
-class ServerOptions(Frame):
-    def __init__(self,root):
-        Frame.__init__(self,root)
+        tk.Frame.__init__(self,root)
         self.root = root
 
-        self.add_guest = Button(
+        self.add_guest = tk.Button(
             self, text="Add Guest", width = 29, command=self.add_client,
             bg='PapayaWhip', activebackground='orangered')
         self.add_guest.pack(side="top",fill="both",expand=True)
         ##EDIT STILL NEEDS WORK
-        self.edit_guest = Button(
+        self.edit_guest = tk.Button(
             self, text="Edit Guest", width=29, command=None,
             bg='lavender', activebackground='purple1')
         self.edit_guest.pack(side="top",fill="both",expand=True)
 
 
-        self.remove_guest = Button(
+        self.remove_guest = tk.Button(
             self, text="Remove Guest", width=29, command=self.remove_client,
             bg='pink1', activebackground='red')
         self.remove_guest.pack(side="top", fill="both", expand=True)
 
-        self.confirm = Button(
+        self.confirm = tk.Button(
             self, text="Submit Order", width=29, command=self.send_ticket,
             bg='pale green', activebackground='green1')
         self.confirm.pack(side="top",fill="both",expand=True)
+
 
     def send_ticket(self):
         j_data = json.dumps(self._root().order.table)
@@ -192,15 +105,6 @@ class ServerOptions(Frame):
         root.person += 1
         #This method adds a seat to the displayed ticket
         next = int(root.order.index('end-1c').split('.')[0])
-        next_line=["\n","-"*20, "Seat #", str(root.person), "-"*20, "\n"]
-
-        root.order.configure(state="normal")
-        root.order.insert(next+1.0, ''.join(next_line), 'tag-center')
-        root.order.configure(state="disabled")
-
-        root.item.text.focus_set()
-
-        self.add_guest['text']=''.join(["Seat #", str(root.person)])
         #print(''.join(next_line))
 
     def edit_client(self,root):
@@ -247,12 +151,12 @@ class MainNote(ttk.Notebook):
                 self.subsection = FoodPad(self.section,catg=item[0])
                 self.section.add(self.subsection, text='\n'.join(list(item[1])))
 
-class FoodPad(Frame):
+class FoodPad(tk.Frame):
     def __init__(self,root, catg=None):
-        Frame.__init__(self,root)
+        tk.Frame.__init__(self,root)
         self.root = root
         self.catg = catg
-        self.canvas = Canvas(self,bg='honeydew')
+        self.canvas = tk.Canvas(self,bg='honeydew')
         scroll = ttk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
 
         self.canvas.pack(side="left", fill="both", expand=True)
@@ -286,11 +190,11 @@ class FoodPad(Frame):
                 self.item.grid(row=r,column=0,sticky="E,W")
                 r+=1
 
-class OrderItemPane(Frame):
+class OrderItemPane(tk.Frame):
 
     def __init__(self,root,data):
-        Frame.__init__(self,root)
-        self.font = Font(family='Georgia', size=12)
+        tk.Frame.__init__(self,root)
+        self.font = font.Font(family='Georgia', size=12)
         self.data = data
         cmd = lambda x = root : self.add_item(x)
         self.bind_class("ret_info", "<Double-1>", cmd)
@@ -303,7 +207,7 @@ class OrderItemPane(Frame):
             highlightcolor = 'DarkGreen'
         )
 
-        self.l1 = Label(self, text=data[0])
+        self.l1 = tk.Label(self, text=data[0])
         self.l1.configure(
             font=self.font,
             bg = 'Peach Puff',
@@ -313,7 +217,7 @@ class OrderItemPane(Frame):
         self.l1.grid(row=0,column=0,sticky="NW,E",ipady=2)
         self.l1.bindtags("ret_info")
 
-        self.l2 = Label(self, text='${}'.format(data[1]))
+        self.l2 = tk.Label(self, text='${}'.format(data[1]))
         self.l2.configure(
             font=self.font,
             bg = 'light blue',
@@ -324,8 +228,8 @@ class OrderItemPane(Frame):
         self.l2.bindtags("ret_info")
 
         #This is the ['desc'] section
-        self.t = Text(self,width=45,height=3)
-        self.t.font = Font(family='Georgia', size=8)
+        self.t = tk.Text(self,width=45,height=3)
+        self.t.font = font.Font(family='Georgia', size=8)
         self.t.grid(row=1,column=0,columnspan=2,sticky="N,E,W,S")
         self.t.configure(
             font = self.font,
@@ -339,148 +243,270 @@ class OrderItemPane(Frame):
         self.t.bindtags("ret_info")
 
     def add_item(self, root):
-        _r = self._root()
-        try:
-            parent = root.widget.winfo_parent()
-            item_info = self.nametowidget(parent).data #< Host fram
-            #item_info order is (item_name,price,sub_cat,desc)
-            _r.item.text.insert('end', (item_info[0] + '\n'))
-            _r.item.seat_item['ID'] = item_info[0]
-            _r.item.seat_item['$$'] = item_info[1]
+        #this is the TOPLEVEL maker!!
+        parent = root.widget.winfo_parent()
+        item_info = self.nametowidget(parent).data
+
+        self._item = ItemBuild(self, text=item_info[0], value=item_info[1])
 
 
-        except AttributeError as e:
-            messagebox.showerror('Item Data Error', '/n'.join([e, "Delete item from database and recreate."]))
-            #print(e)
+
+class ItemBuild(tk.Toplevel):
+    def __init__(self,root, text='This is a Test Item',value=None):
+        super().__init__(root, takefocus=True)
+        self.geometry('400x200+300+300')
+        self.transient(root)
+        self.item_data = dict()
+        self.item_data['ID'] = text
+        self.item_data['$$'] = value
+        self.style = ttk.Style()
+        self.style.configure("mystyle.Treeview", highlightthickness=0, bd=0, font=('Calibri', 11))
+        self.style.configure("mystyle.Treeview.Heading", font=('Calibri', 13, 'bold'))
+        self.style.layout("mystyle.Treeview", [('mystyle.Treeview.treearea', {'sticky': 'nswe'})])
 
 
-class AddOns(Toplevel):
-    def __init__ (self):
-        Toplevel.__init__(self)
-        self.extra = StringVar()
-        self.extra.set('Bacon Lettuce Tomato Pickle')
-        self.font = Font(family="Bahnschrift SemiLight SemiConde", size=14, weight="bold")
+        self.id = ttk.Label(self, text = text, anchor=tk.CENTER, font=('Calibri', 20, 'bold'))
+        self.id.pack( fill='both', expand=True, anchor='nw')
 
-        self.lf = LabelFrame(self,text="Modifications", bg='orangered')
-        self.lf.grid(row=0,column=0,sticky="N,E,S,W",ipady=10,ipadx=5)
+        self.opt_frame = ttk.Frame(self)
+        self.opt_frame.pack(side='left', fill='both', expand=True, anchor='w')
 
-        self.list = Listbox(
-            self.lf, listvariable=self.extra,selectmode=MULTIPLE,
-            bg='Peach Puff', selectbackground='honeydew', selectforeground='black')
-        self.list.pack(expand=True,fill="x",side="top")
-        self.list.configure(font=self.font)
+        self.info_tree = ttk.Treeview(self, style="mystyle.Treeview")
+        self.info_tree.pack(side='left',fill='both',expand=True,anchor='w')
+        self.info_tree.heading('#0', text = 'Item Modifications')
 
-        self.lf1 = LabelFrame(self, text="Review Your Choices:",bg='orangered')
-        self.lf1.grid(row=1,column=0,sticky="N,E,S,W",ipady=10,ipadx=5)
+        self.modifications = tk.Button(
+            self.opt_frame, text='++ / --', command=self.modify_item)
+        self.modifications.pack(side='top', expand=True, fill='both',anchor='n')
 
-        self.add = Button(
-            self.lf1, command=self.add_mods, text="++", bg='pale green')
-        self.add.pack(expand=True, fill="both",ipady=5)
+        self.alerts = tk.Button(
+            self.opt_frame, text = ' !! ', command=self.add_alert)
+        self.alerts.pack(expand=True, fill='both')
 
-        self.remove = Button(
-            self.lf1, command=self.rem_mods, text="--", bg='pink1')
-        self.remove.pack(expand=True, fill="both",ipady=5)
+        self.misc = tk.Button(
+            self.opt_frame, text = ' .. ', command=self.misc_info)
+        self.misc.pack(side="bottom", expand=True, fill="both", anchor='s')
 
-    def add_mods(self):
-        _r = self._root()
-        selection = self.list.curselection()
-        mods = [str(self.list.get(idx)) for idx in selection]
+        self.sub_frame = ttk.Frame(self)
+        self.sub_frame.pack(side='right', fill='both', expand=True, anchor='e')
+        self.confirm = tk.Button(
+            self.sub_frame, text = 'OK', command=self.submit_item)
+        self.confirm.pack(side="top", expand=True, fill='both', anchor='n', ipady=50)
 
-        _r.item.seat_item['++'] = mods
-        for mod in mods:
-            _r.item.text.insert('end',''.join(["++", mod, "\n"]))
-        self.destroy()
+        self.cancel = tk.Button(
+            self.sub_frame, text = 'X', command=self.cancel_item)
+        self.cancel.pack(side='bottom', expand=True, fill='both', anchor='s', ipady=10)
 
-    def rem_mods(self):
-        selection = self.list.curselection()
-        mods = [str(self.list.get(idx)) for idx in selection]
+    def add_alert(self):
+        self.allergies = self.Allergens(self)
 
-        self._root().item.seat_item['--'] = mods
-        for mod in mods:
-            self.nametowidget(".").item.text.insert('end',''.join(["--", mod, "\n"]))
-        self.destroy()
+    def modify_item(self):
+        #++/--
+        self.mods = self.AddOns(self)
 
-class Allergens(Toplevel):
-    def __init__(self):
-        Toplevel.__init__(self)
+    def misc_info(self):
+        self._request = self.Special(self)
 
-        self.font = Font(family="Bahnschrift SemiLight SemiConde", size=14, weight="bold")
-
-        self.lf = LabelFrame(self,text="Guest is allergic to:", bg='orangered')
-        self.lf.grid(row=0,column=0,sticky="N,E,S,W",ipady=10,ipadx=5)
-
-        self.allergen = StringVar()
-        self.allergen.set('Soy Seeds Nuts Dairy Eggs Other')
-
-        self.a_list=Listbox(
-            self.lf, listvariable=self.allergen,selectmode=MULTIPLE,
-            bg='light blue', selectbackground='pink1', selectforeground='black')
-        self.a_list.configure(font=self.font, exportselection=False, activestyle='dotbox')
-        self.a_list.pack(side="top", expand=True,fill="both")
-        self.a_list.bind('<<ListboxSelect>>', self.toggle)
-
-        self.other = StringVar()
-        self.other.set("Other...")
-
-        self.specify = Entry(self.lf, textvariable=self.other)
-        self.specify.pack(side="top", expand=True, fill="both", pady=5, padx=5)
-        self.specify['state'] = "disabled"
-
-        self.submit = Button(self.lf, text="Submit", bg="pale green",command=self.r_allergen)
-        self.submit.pack(side="top", expand=True,fill="both",padx=4, pady=(0,5))
-        self.submit.bind('<1>', self.a_list.unbind('<1>'))
-
-    def r_allergen(self):
-        root = self._root()
-        #gather and sterilize selection
-        sel = self.a_list.curselection()
-        alrg = [str(self.a_list.get(idx)) if self.a_list.get(idx) != "Other" else self.other.get() for idx in sel]
-
-        root.item.seat_item['!!'] = alrg
-
-        for a in alrg:
-            self._root().item.text.insert('end', ('!!' + a +'\n'))
+    def submit_item(self):
+        _data = self.item_data
+        text = json.dumps(_data, indent=4)
+        delimits = ['[',']','{','}',',']
+        for _ in delimits:
+            text=text.replace(_,'')
+        self._root().order.configure(state="normal")
+        self._root().order.insert('end', text)
+        self._root().order.configure(state='disabled')
 
         self.destroy()
 
 
-    def toggle(self, root):
-    #this toggles the "Other..." Entry field
-        bool = self.a_list.curselection()
-        if 5 in bool:
-            self.specify['state'] = "normal"
-        else: self.specify['state'] = 'disabled'
-
-class Special(Toplevel):
-    def __init__(self):
-        Toplevel.__init__(self)
-
-        self.lf = LabelFrame(self, text="Guest has a special request:", bg="orangered")
-        self.lf.grid(row=0,column=0,sticky="N,E,W,S",ipady=10,ipadx=5)
-
-        self.t = Text(self.lf,width=51,height=5,wrap="word")
-        self.t.insert('end', "This is a special request...")
-        self.t.pack(side="top", expand=True,fill="both")
-
-        self._frame = Frame(self, bg="orangered")
-        self._frame.grid(row=1,column=0, sticky="N,E,S,W", ipadx=5)
-
-        self._submit = Button(
-            self._frame, width=25, text = "Submit", command=self.submit_text,
-            bg = 'pale green', activebackground='green1')
-        self._submit.grid(row=0,column=0, sticky="N,S,W", ipady=2, padx=2)
-
-        self._cancel = Button(
-            self._frame, width=15, text = 'X', command=self.destroy,
-            bg = 'pink1', activebackground = 'red')
-        self._cancel.grid(row=0,column=1, sticky="N,E,S", ipady=2, padx=2)
-
-    def submit_text(self):
-        text = self.t.get(1.0, 'end')
-        self._root().item.seat_item['..'] = text
-        self._root().item.text.insert('end', text)
-
+    def cancel_item(self):
         self.destroy()
+
+    class AddOns(tk.Toplevel):
+        def __init__ (self, root):
+            super().__init__(root)
+            self.extra = tk.StringVar()
+            self.extra.set('Bacon Lettuce Tomato Pickle')
+            self.font = font.Font(family="Bahnschrift SemiLight SemiConde", size=14, weight="bold")
+
+            self.lf = tk.LabelFrame(self,text="Modifications", bg='orangered')
+            self.lf.grid(row=0,column=0,sticky="N,E,S,W",ipady=10,ipadx=5)
+
+            self.list = tk.Listbox(
+                self.lf, listvariable=self.extra,selectmode=tk.MULTIPLE,
+                bg='Peach Puff', selectbackground='honeydew', selectforeground='black')
+            self.list.pack(expand=True,fill="x",side="top")
+            self.list.configure(font=self.font)
+
+            self.lf1 = tk.LabelFrame(self, text="Review Your Choices:",bg='orangered')
+            self.lf1.grid(row=1,column=0,sticky="N,E,S,W",ipady=10,ipadx=5)
+
+            self.add = tk.Button(
+                self.lf1, command=self.add_mods, text="++", bg='pale green')
+            self.add.pack(expand=True, fill="both",ipady=5)
+
+            self.remove = tk.Button(
+                self.lf1, command=self.rem_mods, text="--", bg='pink1')
+            self.remove.pack(expand=True, fill="both",ipady=5)
+
+        def add_mods(self):
+            selection = self.list.curselection()
+            mods = [str(self.list.get(idx)) for idx in selection]
+
+            item = self.master.item_data
+
+            try:
+                item['++'].extend(mods)
+
+                for mod in mods:
+                    self.master.info_tree.insert('adds', 'end', text=mod, tags = 'add_on')
+
+            except KeyError:
+                item['++'] = mods
+                self.master.info_tree.insert('', 'end', 'adds', text='++')
+                self.master.info_tree.item('adds', open=True)
+
+                for mod in mods:
+                    self.master.info_tree.insert('adds','end', mod, text=mod)
+                    self.master.info_tree.item(mod, tags='add_on')
+
+            self.master.info_tree.tag_configure('add_on', background='pale green')
+
+            print(item)
+
+            self.destroy()
+
+        def rem_mods(self):
+            selection = self.list.curselection()
+            mods = [str(self.list.get(idx)) for idx in selection]
+
+            item = self.master.item_data
+            try:
+                item['--'].extend(mods)
+
+                for mod in mods:
+                    self.master.info_tree.insert('rems', 'end', text=mod, tags='rem_op')
+
+
+            except KeyError:
+                item['--'] = mods
+                self.master.info_tree.insert('', 'end', 'rems', text='--')
+                self.master.info_tree.item('rems', open=True)
+
+                for mod in mods:
+                    self.master.info_tree.insert('rems', 'end', text=mod, tags='rem_op')
+            self.master.info_tree.tag_configure('rem_op', background='pink')
+
+
+            print(item)
+
+            self.destroy()
+
+    class Allergens(tk.Toplevel):
+        def __init__(self,root):
+            super().__init__(root)
+
+            self.font = font.Font(family="Bahnschrift SemiLight SemiConde", size=14, weight="bold")
+
+            self.lf = tk.LabelFrame(self,text="Guest is allergic to:", bg='orangered')
+            self.lf.grid(row=0,column=0,sticky="N,E,S,W",ipady=10,ipadx=5)
+
+            self.allergen = tk.StringVar()
+            self.allergen.set('Soy Seeds Nuts Dairy Eggs Other')
+
+            self.a_list= tk.Listbox(
+                self.lf, listvariable=self.allergen,selectmode=tk.MULTIPLE,
+                bg='light blue', selectbackground='pink1', selectforeground='black')
+            self.a_list.configure(font=self.font, exportselection=False, activestyle='dotbox')
+            self.a_list.pack(side="top", expand=True,fill="both")
+            self.a_list.bind('<<ListboxSelect>>', self.toggle)
+
+            self.other = tk.StringVar()
+            self.other.set("Other...")
+
+            self.specify = tk.Entry(self.lf, textvariable=self.other)
+            self.specify.pack(side="top", expand=True, fill="both", pady=5, padx=5)
+            self.specify['state'] = "disabled"
+
+            self.submit = tk.Button(self.lf, text="Submit", bg="pale green",command=self.r_allergen)
+            self.submit.pack(side="top", expand=True,fill="both",padx=4, pady=(0,5))
+            self.submit.bind('<1>', self.a_list.unbind('<1>'))
+
+        def r_allergen(self):
+            #gather and sterilize selection
+            sel = self.a_list.curselection()
+            alrg = [str(self.a_list.get(idx)) if self.a_list.get(idx) != "Other" else self.other.get() for idx in sel]
+
+            item = self.master.item_data
+            try:
+                item['!!'].extend(alrg)
+
+                for _a in alrg:
+                    self.master.info_tree.insert('alrg', 'end', text=_a)
+
+            except KeyError:
+                item['!!'] = alrg
+                self.master.info_tree.insert('','end','alrg',text='!!')
+                self.master.info_tree.item('alrg', open=True)
+
+
+                for _a in alrg:
+                    self.master.info_tree.insert('alrg', 'end', text=_a)
+
+            print(item)
+            self.destroy()
+
+
+        def toggle(self, root):
+            #this toggles the "Other..." Entry field
+            bool = self.a_list.curselection()
+            if 5 in bool:
+                self.specify['state'] = "normal"
+            else: self.specify['state'] = 'disabled'
+
+    class Special(tk.Toplevel):
+        def __init__(self,root):
+            super().__init__(root)
+
+            self.lf = tk.LabelFrame(self, text="Guest has a special request:", bg="orangered")
+            self.lf.grid(row=0,column=0,sticky="N,E,W,S",ipady=10,ipadx=5)
+
+            self.t = tk.Text(self.lf,width=51,height=5,wrap="word")
+            self.t.insert('end', "This is a special request...")
+            self.t.pack(side="top", expand=True,fill="both")
+
+            self._frame = tk.Frame(self, bg="orangered")
+            self._frame.grid(row=1,column=0, sticky="N,E,S,W", ipadx=5)
+
+            self._submit = tk.Button(
+                self._frame, width=25, text = "Submit", command=self.submit_text,
+                bg = 'pale green', activebackground='green1')
+            self._submit.grid(row=0,column=0, sticky="N,S,W", ipady=2, padx=2)
+
+            self._cancel = tk.Button(
+                self._frame, width=15, text = 'X', command=self.destroy,
+                bg = 'pink1', activebackground = 'red')
+            self._cancel.grid(row=0,column=1, sticky="N,E,S", ipady=2, padx=2)
+
+        def submit_text(self):
+            text = self.t.get(1.0, 'end')
+
+            item = self.master.item_data
+            try:
+                item['..'].append(text)
+
+                self.master.info_tree.insert('misc', 'end', text=text)
+
+            except KeyError:
+                item['..'] = [text]
+                self.master.info_tree.insert('', 'end', 'misc', text='..')
+                self.master.info_tree.item('misc', open=True)
+
+                self.master.info_tree.insert('misc', 'end', text=text)
+
+            print(item)
+            self.destroy()
 
 
 if __name__ == "__main__":

@@ -37,3 +37,6 @@ Extensions in progress
     A KitchenView window has been added to the file list, which checks the database for active tickets and creates the necessary widgets to process from an expediter position.
     There is a small bug currently with the individual Main.Ticket.ticket_timer() function where all the tickets will reference the last Ticket's thread. 
     
+9.22.2020
+
+    The kitchen_a.py file has been added. This file offers flexible task handling of tickets and a time-based ticket progressbar. There is also a functional clock. 
